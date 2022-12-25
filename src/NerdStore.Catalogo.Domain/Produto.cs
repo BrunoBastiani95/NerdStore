@@ -12,10 +12,11 @@ namespace NerdStore.Catalogo.Domain
         public DateTime DataCadastro { get; private set; }
         public string Imagem { get; private set; }
         public int QuantidadeEstoque { get; private set; }
+        public Dimensoes Dimensoes { get; private set; }
         public Categoria Categoria { get; private set; }
 
         public Produto(string nome, string descricao, bool ativo, decimal valor,
-            Guid categoriaId, DateTime dataCadastro, string imagem)
+            Guid categoriaId, DateTime dataCadastro, string imagem, Dimensoes dimensoes)
         {
             CategoriaId = categoriaId;
             Nome = nome;
@@ -24,6 +25,7 @@ namespace NerdStore.Catalogo.Domain
             Valor = valor;
             DataCadastro = dataCadastro;
             Imagem = imagem;
+            Dimensoes = dimensoes;
 
             Validar();
         }
@@ -34,19 +36,23 @@ namespace NerdStore.Catalogo.Domain
 
         public void AlterarCategoria(Categoria categoria)
         {
+            if (categoria is null) throw new DomainException("A categoria vinculada ao produto não pode ser nula");
+            if (categoria.Id == Guid.Empty) throw new DomainException("O campo ID da categoria do produto não pode estar vazio");
             Categoria = categoria;
             CategoriaId = categoria.Id;
         }
 
         public void AlterarDescricao(string descricao)
         {
+            if (string.IsNullOrEmpty(Descricao)) throw new DomainException("O campo Descricao do produto não pode estar vazio");
             Descricao = descricao;
         }
 
         public void DebitarEstoque(int quantidade)
         {
             if (quantidade < 0) quantidade *= -1;
-                QuantidadeEstoque -= quantidade;
+            if (!PossuiEstoque(quantidade)) throw new DomainException("Estoque insuficiente");
+            QuantidadeEstoque -= quantidade;
         }
 
         public bool PossuiEstoque(int quantidade)
@@ -56,26 +62,11 @@ namespace NerdStore.Catalogo.Domain
 
         public void Validar()
         {
-            AssertionConcern.ValidarSeVazio(Nome, "O campo Nome do produto não pode estar vazio");
-            AssertionConcern.ValidarSeVazio(Descricao, "O campo Descricao do produto não pode estar vazio");
-            AssertionConcern.ValidarSeDiferente(CategoriaId, Guid.Empty, "O campo CategoriaId do produto não pode estar vazio");
-        }
-    }
-
-    public class Categoria : Entity
-    {
-        public string Nome { get; private set; }
-        public int Codigo { get; private set; }
-
-        public Categoria(string nome, int codigo)
-        {
-            Nome = nome;
-            Codigo = codigo;
-        }
-
-        public override string ToString()
-        {
-            return $"{Nome} - {Codigo}";
+            if(string.IsNullOrEmpty(Nome)) throw new DomainException("O campo Nome do produto não pode estar vazio");
+            if(string.IsNullOrEmpty(Descricao)) throw new DomainException("O campo Descricao do produto não pode estar vazio");
+            if(CategoriaId == Guid.Empty) throw new DomainException("O campo CategoriaId do produto não pode estar vazio");
+            if(Valor <= 0) throw new DomainException("O campo Valor do produto não pode ser menor ou igual a 0");
+            if(string.IsNullOrEmpty(Imagem)) throw new DomainException("O campo Imagem do produto não pode estar vazio");
         }
     }
 }
